@@ -1,0 +1,33 @@
+{
+  "command": "train",
+  "data": "data",
+  "output": "outputs/baseline",
+  "epochs": 12,
+  "freeze_epochs": 2,
+  "lr": 0.001,
+  "val_fraction": 0.2,
+  "seed": 42,
+  "device": "cuda",
+  "batch_size": 32,
+  "workers": 2,
+  "device_used": "cuda",
+  "torch_version": "2.6.0+cu124",
+  "started_at": "2026-09-05T05:42:55.260675+00:00",
+  "device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "train_count": 2944,
+  "val_count": 736,
+  "architecture": "mobilenet_v3_large",
+  "pretrained_weights": "IMAGENET1K_V2",
+  "data_provenance": {
+    "image_source": "https://zenodo.org/records/8067751",
+    "mirror_zip_md5": "7f61d2a52733bce84d505617dd7e780a",
+    "annotations_source": "https://www.robots.ox.ac.uk/~vgg/data/pets/data/annotations.tar.gz",
+    "annotations_md5": "95a8c909bbe2e81eed6a22bccdf3f68f",
+    "splits": {
+      "trainval": 3680,
+      "test": 3669
+    },
+    "images_sha256_ordered_by_name": "32302621ffbbd78b95e76937c05049eff453d387ca403afbdc3f402f5ac82e77",
+    "note": "镜像图片已还原；仅使用 Oxford 官方 trainval/test 划分。"
+  }
+}

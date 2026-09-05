@@ -1,0 +1,10 @@
+# Tested with Python 3.9 and CUDA 12.4. Install a matching torch/torchvision pair.
+torch==2.6.0
+torchvision==0.21.0
+numpy>=1.24,<3
+Pillow>=10.0,<12
+matplotlib>=3.7,<3.10
+scikit-learn==1.6.1
+streamlit==1.50.0
+pytest==8.4.2
+requests>=2.32,<3

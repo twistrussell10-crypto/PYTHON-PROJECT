@@ -1,0 +1,150 @@
+[
+  {
+    "name": "Abyssinian",
+    "species": "cat"
+  },
+  {
+    "name": "american_bulldog",
+    "species": "dog"
+  },
+  {
+    "name": "american_pit_bull_terrier",
+    "species": "dog"
+  },
+  {
+    "name": "basset_hound",
+    "species": "dog"
+  },
+  {
+    "name": "beagle",
+    "species": "dog"
+  },
+  {
+    "name": "Bengal",
+    "species": "cat"
+  },
+  {
+    "name": "Birman",
+    "species": "cat"
+  },
+  {
+    "name": "Bombay",
+    "species": "cat"
+  },
+  {
+    "name": "boxer",
+    "species": "dog"
+  },
+  {
+    "name": "British_Shorthair",
+    "species": "cat"
+  },
+  {
+    "name": "chihuahua",
+    "species": "dog"
+  },
+  {
+    "name": "Egyptian_Mau",
+    "species": "cat"
+  },
+  {
+    "name": "english_cocker_spaniel",
+    "species": "dog"
+  },
+  {
+    "name": "english_setter",
+    "species": "dog"
+  },
+  {
+    "name": "german_shorthaired",
+    "species": "dog"
+  },
+  {
+    "name": "great_pyrenees",
+    "species": "dog"
+  },
+  {
+    "name": "havanese",
+    "species": "dog"
+  },
+  {
+    "name": "japanese_chin",
+    "species": "dog"
+  },
+  {
+    "name": "keeshond",
+    "species": "dog"
+  },
+  {
+    "name": "leonberger",
+    "species": "dog"
+  },
+  {
+    "name": "Maine_Coon",
+    "species": "cat"
+  },
+  {
+    "name": "miniature_pinscher",
+    "species": "dog"
+  },
+  {
+    "name": "newfoundland",
+    "species": "dog"
+  },
+  {
+    "name": "Persian",
+    "species": "cat"
+  },
+  {
+    "name": "pomeranian",
+    "species": "dog"
+  },
+  {
+    "name": "pug",
+    "species": "dog"
+  },
+  {
+    "name": "Ragdoll",
+    "species": "cat"
+  },
+  {
+    "name": "Russian_Blue",
+    "species": "cat"
+  },
+  {
+    "name": "saint_bernard",
+    "species": "dog"
+  },
+  {
+    "name": "samoyed",
+    "species": "dog"
+  },
+  {
+    "name": "scottish_terrier",
+    "species": "dog"
+  },
+  {
+    "name": "shiba_inu",
+    "species": "dog"
+  },
+  {
+    "name": "Siamese",
+    "species": "cat"
+  },
+  {
+    "name": "Sphynx",
+    "species": "cat"
+  },
+  {
+    "name": "staffordshire_bull_terrier",
+    "species": "dog"
+  },
+  {
+    "name": "wheaten_terrier",
+    "species": "dog"
+  },
+  {
+    "name": "yorkshire_terrier",
+    "species": "dog"
+  }
+]

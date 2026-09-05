@@ -1,0 +1,11 @@
+{
+  "split": "official test",
+  "samples": 3669,
+  "top1_accuracy": 0.9065140365222132,
+  "top5_accuracy": 0.99373126192423,
+  "macro_f1": 0.905475743952803,
+  "species_accuracy": 0.9934587080948487,
+  "checkpoint_epoch": 11,
+  "validation_accuracy": 0.9211956521739131,
+  "checkpoint_sha256": "6c46a7a4cb047ed58920038a6113757b8e10cdf3e4b85d8b441d0fd76c975c8e"
+}
