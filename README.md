@@ -107,4 +107,4 @@ python -m venv .venv
 
 参考：[Cats and Dogs, CVPR 2012](https://www.robots.ox.ac.uk/~vgg/publications/2012/parkhi12a/)、[Torchvision OxfordIIITPet](https://docs.pytorch.org/vision/stable/generated/torchvision.datasets.OxfordIIITPet.html)、[MobileNetV3-Large](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.mobilenet_v3_large.html)。
 
-本项目用于学习和品种识别演示。未实现目标检测、多宠物分别识别、未知类别拒识或混血判断。
+本项目用于学习和品种识别演示，也是一个用于完成暑期 Python 课程的深度学习项目。未实现目标检测、多宠物分别识别、未知类别拒识或混血判断。
