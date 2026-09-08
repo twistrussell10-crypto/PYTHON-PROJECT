@@ -8,18 +8,27 @@
 
 这台电脑的 `.venv` 已复用现有 PyTorch CUDA 环境，额外依赖安装在项目虚拟环境中。
 
-**双击 `start_app.bat`**，在打开的浏览器中上传照片或选择示例图片即可。
+**双击 `start.bat`**（`start_app.bat` 也可以），等浏览器自动打开后，上传照片或选择示例图片即可。启动器会检查环境和模型，从本机 8501–8520 端口中选择可用端口，并在服务就绪后打开浏览器。无需填写 Streamlit 欢迎页面的邮箱。
+
+演示时保持启动窗口开启；结束后在该窗口按 `Ctrl+C`。浏览器地址以窗口中显示的 `http://127.0.0.1:端口` 为准。
 
 界面的「实验结果」标签页显示实际评估指标。最佳模型保存在 `outputs/baseline/best.pt`，报告在 `outputs/baseline/evaluation/REPORT.md`。
 
 也可以在 PowerShell 中运行：
 
 ```powershell
-.\.venv\Scripts\python.exe -m streamlit run app.py
+.\.venv\Scripts\python.exe scripts\launch_app.py
 .\.venv\Scripts\python.exe -m pet_classifier predict examples/Abyssinian.jpg
 ```
 
 命令行默认使用可用的 GPU；演示界面使用 CPU，方便在没有独立显卡的电脑上预测。
+
+新版界面提供中文品种名、前五名候选、预测 JSON 下载、品种搜索、学习曲线与各类成绩。同一张图片在当前会话中的预测会复用，搜索品种时不重复推理。此次优化改善演示体验，沿用现有模型；官方测试集 Top-1 为 **90.65%**，Top-5 为 **99.37%**。
+
+课程汇报材料：
+
+- [报告 PPT](reports/宠物品种分类器_课程报告.pptx)：整体框架、训练设置、实测结果、误分类分析与演示流程。
+- [8–10 分钟讲稿与答辩问答](docs/REPORT_SPEAKER_GUIDE.md)：可照着练习，也可按老师要求缩短。
 
 ## 在新电脑安装
 
@@ -83,9 +92,14 @@ python -m venv .venv
 | `pet_classifier/predict.py` | 单图预测，返回前 K 类及 softmax 分数 |
 | `pet_classifier/__main__.py` | 四个命令的参数入口 |
 | `app.py` | 上传照片、本地示例和实验结果界面 |
+| `start.bat`、`scripts/launch_app.py` | 一键启动、检查运行条件、选择本地可用端口 |
+| `pet_classifier/labels.py` | 英文类别到中文品种名的展示映射 |
+| `reports/宠物品种分类器_课程报告.pptx` | 课程汇报演示文稿 |
+| `docs/REPORT_SPEAKER_GUIDE.md` | 汇报讲稿、现场操作和答辩问答 |
 | `docs/LEARNING_GUIDE.md` | 后续学习路线和关键概念 |
 | `notebooks/01_understand_the_project.ipynb` | 交互学习：读报告、预测、检查数据划分和观察错误 |
 | `tests/test_project.py` | 数据泄漏、标签映射、灰度输入和冻结行为验证 |
+| `tests/test_demo.py` | 端口冲突、预测复用及中文搜索验证；未复制模型时跳过模型相关集成测试 |
 
 ## 输出说明
 

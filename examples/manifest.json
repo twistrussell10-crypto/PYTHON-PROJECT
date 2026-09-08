@@ -1,0 +1,32 @@
+{
+  "Abyssinian.jpg": {
+    "original": "Abyssinian_1",
+    "breed": "Abyssinian",
+    "split": "trainval"
+  },
+  "Basset_Hound.jpg": {
+    "original": "basset_hound_1",
+    "breed": "basset_hound",
+    "split": "test"
+  },
+  "demo_beagle.jpg": {
+    "original": "beagle_1",
+    "breed": "beagle",
+    "split": "test"
+  },
+  "demo_Bengal.jpg": {
+    "original": "Bengal_1",
+    "breed": "Bengal",
+    "split": "test"
+  },
+  "demo_samoyed.jpg": {
+    "original": "samoyed_1",
+    "breed": "samoyed",
+    "split": "test"
+  },
+  "demo_Sphynx.jpg": {
+    "original": "Sphynx_2",
+    "breed": "Sphynx",
+    "split": "test"
+  }
+}

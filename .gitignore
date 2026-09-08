@@ -8,3 +8,7 @@ outputs/**/*.log
 *.pyc
 *.log
 .streamlit/secrets.toml
+.report-build/
+.chart-data-*/
+reports/*_v*.pptx
+reports/*_旧版.pptx
