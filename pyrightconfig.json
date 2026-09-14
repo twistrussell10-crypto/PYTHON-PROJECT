@@ -1,0 +1,22 @@
+{
+    "venvPath": ".",
+    "venv": ".venv",
+    "include": [
+        "app.py",
+        "pet_classifier",
+        "scripts",
+        "tests"
+    ],
+    "exclude": [
+        ".venv",
+        ".report-build",
+        "data",
+        "outputs"
+    ],
+    "executionEnvironments": [
+        {
+            "root": ".",
+            "extraPaths": ["."]
+        }
+    ]
+}
