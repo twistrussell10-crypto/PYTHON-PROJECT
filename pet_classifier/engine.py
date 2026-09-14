@@ -16,26 +16,32 @@ from .model import build_model, select_device
 
 
 def write_json(path, value):
+    """以 UTF-8 和便于人工阅读的缩进格式保存实验元数据。"""
     Path(path).write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def seed_everything(seed):
+    """固定 Python、NumPy、PyTorch 和 CUDA 的随机状态，提高结果可复现性。"""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.set_num_threads(4)
+    # benchmark 可能按运行环境选择不同算法；关闭它并启用 deterministic。
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
 
 def seed_worker(worker_id):
+    """为 DataLoader 子进程设置独立且可复现的 NumPy/Python 随机种子。"""
+    # worker_id 由 DataLoader 使用；实际种子已经包含 worker 偏移量。
     seed = torch.initial_seed() % (2 ** 32)
     random.seed(seed)
     np.random.seed(seed)
 
 
 def make_loader(rows, training, batch_size, workers, device, seed=42):
+    """根据阶段创建 DataLoader：训练时打乱，验证时保持固定顺序。"""
     return DataLoader(PetDataset(rows, training), batch_size=batch_size, shuffle=training,
                       num_workers=workers, pin_memory=device.type == "cuda",
                       persistent_workers=workers > 0, worker_init_fn=seed_worker,
@@ -43,6 +49,11 @@ def make_loader(rows, training, batch_size, workers, device, seed=42):
 
 
 def run_epoch(model, loader, device, optimizer=None, scaler=None, frozen=False):
+    """运行一轮训练或验证并返回平均损失和准确率。
+
+    optimizer 为 None 表示验证；否则执行反向传播。frozen=True 时保持特征主干
+    的 BatchNorm 为评估模式，避免冻结权重时其运行统计量仍发生变化。
+    """
     training = optimizer is not None
     model.train(training)
     if training and frozen:
@@ -50,6 +61,7 @@ def run_epoch(model, loader, device, optimizer=None, scaler=None, frozen=False):
         model.features.eval()
     criterion = nn.CrossEntropyLoss()
     total_loss, correct, count = 0.0, 0, 0
+    # 验证阶段关闭自动求导，既节省内存，也避免意外构建反向传播计算图。
     with torch.set_grad_enabled(training):
         for images, labels in loader:
             images, labels = images.to(device), labels.to(device)
@@ -62,6 +74,7 @@ def run_epoch(model, loader, device, optimizer=None, scaler=None, frozen=False):
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
+            # 乘以本批样本数后再除以总数，最后一个较小批次不会被过度加权。
             total_loss += loss.item() * labels.size(0)
             correct += (logits.argmax(1) == labels).sum().item()
             count += labels.size(0)
@@ -69,11 +82,17 @@ def run_epoch(model, loader, device, optimizer=None, scaler=None, frozen=False):
 
 
 def train(args):
+    """执行完整的两阶段迁移学习，并把可复现实验文件写入输出目录。
+
+    前 freeze_epochs 轮只训练分类头，之后解冻主干微调。每轮在验证集上评估，
+    仅当验证准确率提高时更新 best.pt，官方测试集不会参与模型选择。
+    """
     if args.epochs < 1 or not 0 <= args.freeze_epochs <= args.epochs:
         raise ValueError("epochs 至少为 1，freeze_epochs 必须在 0 和 epochs 之间")
     if args.batch_size < 1 or args.workers < 0 or args.lr <= 0:
         raise ValueError("batch_size、lr 必须为正数，workers 不能为负数")
     out = Path(args.output)
+    # 拒绝覆盖已有实验，防止误删已经训练数小时得到的 checkpoint。
     if (out / "best.pt").exists():
         raise FileExistsError("输出目录已有模型；请用 --output 指定新的目录，保留原实验。")
     out.mkdir(parents=True, exist_ok=True)
@@ -104,6 +123,7 @@ def train(args):
     for epoch in range(args.epochs):
         start = time.perf_counter()
         frozen = epoch < args.freeze_epochs
+        # 只在训练开始和冻结阶段结束时重新配置可训练参数与优化器。
         if epoch == 0 or epoch == args.freeze_epochs:
             for parameter in model.features.parameters():
                 parameter.requires_grad = not frozen
@@ -122,11 +142,13 @@ def train(args):
                "val_loss": val["loss"], "val_accuracy": val["accuracy"],
                "lr": optimizer.param_groups[0]["lr"], "seconds": time.perf_counter() - start}
         history.append(row)
+        # 测试集严格保留到训练结束；最佳模型只依据验证准确率决定。
         if val["accuracy"] > best:
             best = val["accuracy"]
             checkpoint = {"architecture": "mobilenet_v3_large", "model_state": model.state_dict(),
                           "classes": classes, "epoch": epoch + 1, "val_accuracy": best,
                           "preprocess": "MobileNet_V3_Large_Weights.IMAGENET1K_V2", "config": config}
+            # 先写临时文件再原子替换，降低中断时留下损坏模型的风险。
             torch.save(checkpoint, out / "best.pt.tmp")
             (out / "best.pt.tmp").replace(out / "best.pt")
         scheduler.step()

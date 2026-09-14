@@ -1,4 +1,6 @@
 """界面展示用中文名称。英文类别及其编号仍由 checkpoint 决定。"""
+# 键必须与 Oxford-IIIT Pet 官方英文类别名（转为小写后）一致。
+# 该字典只影响界面文字，不参与模型训练，也不会改变类别编号。
 BREED_ZH = {
     "abyssinian": "阿比西尼亚猫", "american_bulldog": "美国斗牛犬",
     "american_pit_bull_terrier": "美国比特斗牛梗", "basset_hound": "巴吉度猎犬",
@@ -19,4 +21,5 @@ BREED_ZH = {
 
 
 def breed_zh(name):
+    """返回品种中文名；未知名称则转换为便于阅读的英文标题格式。"""
     return BREED_ZH.get(name.lower(), name.replace("_", " ").title())

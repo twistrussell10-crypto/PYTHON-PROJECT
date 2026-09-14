@@ -15,15 +15,22 @@ from pet_classifier.predict import Predictor
 
 
 def read_json(path):
+    """读取 UTF-8 JSON 文件并返回 Python 对象。"""
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def main():
+    """核对已保存实验，整理报告所需证据和官方测试集示例。
+
+    本函数不会训练或重新选择模型；断言用于防止把不同实验的模型、指标和
+    数据划分误写进同一份课程报告。
+    """
     run = ROOT / "outputs" / "baseline"
     report = run / "evaluation"
     build = ROOT / ".report-build"
     build.mkdir(exist_ok=True)
     metrics = read_json(report / "metrics.json")
+    # 用 checkpoint 哈希证明评估结果对应当前 best.pt。
     digest = hashlib.sha256((run / "best.pt").read_bytes()).hexdigest()
     assert digest == metrics["checkpoint_sha256"], "模型与评估报告不一致"
     with (report / "predictions.csv").open(encoding="utf-8", newline="") as source:
@@ -32,12 +39,14 @@ def main():
     assert len(predictions) == metrics["samples"]
     assert abs(correct / len(predictions) - metrics["top1_accuracy"]) < 1e-12
     errors = [row for row in predictions if row["correct"] == "False"]
+    # 统计真实品种到错误预测品种的有向组合，寻找最常见的混淆。
     confusion = Counter((row["true_breed"], row["predicted_breed"]) for row in errors)
     with (run / "history.csv").open(encoding="utf-8", newline="") as source:
         history = [{key: (value if key == "stage" else float(value)) for key, value in row.items()}
                    for row in csv.DictReader(source)]
     split = read_json(run / "split.json")
     trainval, test = records(ROOT / "data", "trainval"), records(ROOT / "data", "test")
+    # 验证三组互斥，防止测试泄漏和训练/验证重复。
     assert not set(split["train"]) & set(split["validation"])
     assert set(split["train"]) | set(split["validation"]) == {r["name"] for r in trainval}
     assert not {r["name"] for r in trainval} & {r["name"] for r in test}
@@ -49,6 +58,7 @@ def main():
                               "split": "test" if match in test else "trainval"}
     demos = []
     predictor = Predictor(run / "best.pt", "cpu")
+    # 每个品种固定选择按名称排序后的第一张官方测试图，保证结果可复现。
     for breed in ("beagle", "Bengal", "samoyed", "Sphynx"):
         row = sorted([r for r in test if r["name"].rsplit("_", 1)[0] == breed], key=lambda r:r["name"])[0]
         filename = f"demo_{breed}.jpg"

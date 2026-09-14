@@ -12,6 +12,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from pet_classifier.labels import breed_zh
 from pet_classifier.predict import Predictor
 
+# 所有资源都相对于项目根目录定位，避免从其他工作目录启动时找不到文件。
 ROOT = Path(__file__).resolve().parent
 RUN = ROOT / "outputs" / "baseline"
 st.set_page_config(page_title="Pet Atlas · 宠物品种识别", page_icon="🐾", layout="wide")
@@ -19,18 +20,22 @@ st.set_page_config(page_title="Pet Atlas · 宠物品种识别", page_icon="🐾
 
 @st.cache_resource
 def get_predictor(path, modified):
+    """创建并缓存模型对象；文件修改时间改变时缓存键会自动变化。"""
     return Predictor(path, device="cpu")
 
 
 @st.cache_data(show_spinner=False)
 def checkpoint_hash(path, modified):
+    """计算并缓存模型哈希，用于核对评估结果是否属于当前 checkpoint。"""
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def load_json(path):
+    """按 UTF-8 读取项目生成的 JSON 文件。"""
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+# 页面顶部和侧边栏给出任务范围，避免把模型分数误解为可靠概率。
 st.caption("PET ATLAS / OXFORD-IIIT PET")
 st.title("认识照片里的宠物品种")
 st.write("37 个猫犬品种，支持中文结果、前五名候选和实验报告。")
@@ -43,6 +48,7 @@ with st.sidebar:
     st.markdown("[项目仓库](https://github.com/twistrussell10-crypto/PYTHON-PROJECT)")
     st.markdown("[Oxford 数据集来源](https://www.robots.ox.ac.uk/~vgg/data/pets/)")
 
+# 网页只加载已经训练好的模型，不会在展示时重新训练。
 checkpoint = RUN / "best.pt"
 if not checkpoint.exists():
     st.warning("尚未找到训练好的模型，请复制 best.pt 到 outputs/baseline，或先训练。")
@@ -56,12 +62,14 @@ except (OSError, RuntimeError, ValueError, KeyError) as error:
     st.error(f"模型加载失败：{error}")
     st.stop()
 
+# 四个标签页分别服务于现场预测、实验汇报、流程讲解和类别查询。
 tab_predict, tab_report, tab_flow, tab_classes = st.tabs(["图片识别", "实验结果", "项目原理", "支持的品种"])
 with tab_predict:
     left, right = st.columns([1.1, 1], gap="large")
     with left:
         mode = st.radio("图片来源", ["示例图片", "上传图片"], horizontal=True)
         payload, example = None, None
+        # 上传文件只读取到内存；示例图片则从 examples 目录读取。
         if mode == "上传图片":
             upload = st.file_uploader("上传一张宠物照片", type=["jpg", "jpeg", "png", "webp"])
             if upload is not None:
@@ -81,6 +89,7 @@ with tab_predict:
         picture = None
         if payload:
             try:
+                # BytesIO 把上传的字节包装成 Pillow 可以读取的文件对象。
                 with Image.open(io.BytesIO(payload)) as original:
                     picture = ImageOps.exif_transpose(original).convert("RGB")
                 st.image(picture, width="stretch")
@@ -93,6 +102,7 @@ with tab_predict:
             st.subheader("选择照片后自动识别")
             st.write("单只宠物、主体清楚的照片更适合这个模型。")
         else:
+            # 图片内容和模型版本共同组成缓存键；切换其他页面不会重复推理。
             key = (hashlib.sha256(payload).hexdigest(), modified)
             if st.session_state.get("prediction_key") != key:
                 with st.spinner("正在识别…"):
@@ -110,6 +120,7 @@ with tab_predict:
             score.metric("模型分数", f"{best['probability']:.1%}")
             timing.metric("本次推理耗时", f"{elapsed:.0f} ms")
             st.caption("耗时包含预处理与前向计算，不含模型加载；重复展示沿用首次结果。")
+            # 候选已经由 Predictor 按 softmax 分数从高到低排列。
             for result in results:
                 st.write(f"{breed_zh(result['breed'])}　{result['probability']:.1%}")
                 st.progress(result["probability"])
@@ -121,6 +132,7 @@ with tab_predict:
                                file_name="prediction.json", mime="application/json")
 
 with tab_report:
+    # 这里只展示 evaluate.py 已经生成的结果，不现场重算整个测试集。
     evaluation = RUN / "evaluation"
     if (evaluation / "metrics.json").exists():
         metrics = load_json(evaluation / "metrics.json")
@@ -147,6 +159,7 @@ with tab_report:
         st.caption("训练准确率接近 100%，验证准确率约 92%，说明仍存在泛化差距。")
         report_path = evaluation / "classification_report.json"
         if report_path.exists():
+            # 只保留 checkpoint 中的 37 个品种，排除报告里的宏平均等汇总行。
             report = load_json(report_path)
             per_breed = pd.DataFrame([{"品种": breed_zh(name), "精确率": data["precision"],
                 "召回率": data["recall"], "F1": data["f1-score"], "测试图片数": int(data["support"])}
@@ -166,6 +179,7 @@ with tab_report:
         st.info("评估完成后，此处将显示测试指标。")
 
 with tab_flow:
+    # 用表格概括从数据到演示的模块调用关系，适合课堂讲解。
     st.subheader("训练流程与演示流程")
     st.dataframe(pd.DataFrame([
         ["数据准备", "data.py", "官方 trainval 内划分训练与验证，保留官方 test"],
@@ -179,6 +193,7 @@ with tab_flow:
     st.code("start_app.bat", language="text")
 
 with tab_classes:
+    # 搜索和物种筛选只处理表格，不会再次运行神经网络。
     query = st.text_input("搜索中文或英文品种名")
     species_filter = st.radio("物种筛选", ["全部", "猫", "狗"], horizontal=True)
     classes = pd.DataFrame([{"中文名": breed_zh(c["name"]), "英文类别": c["name"],

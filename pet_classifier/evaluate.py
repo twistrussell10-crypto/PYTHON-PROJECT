@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 
 import matplotlib
+# 使用无窗口绘图后端，使评估脚本能在服务器或命令行环境生成 PNG。
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,27 +18,36 @@ from .model import load_checkpoint, select_device
 
 
 def evaluate(args):
+    """在完整官方测试集上评估指定 checkpoint，并生成可复核的结果文件。
+
+    输入来自命令行参数 args；主要输出包括 metrics.json、逐图预测 CSV、分类报告、
+    混淆矩阵和错误样例图。此函数只做推理，不修改模型参数。
+    """
     torch.set_num_threads(4)
     device = select_device(args.device)
     model, checkpoint = load_checkpoint(args.checkpoint, device)
     rows = records(args.data, "test")
+    # 测试集的标签顺序必须和训练时保存的顺序完全一致。
     if class_metadata(rows) != checkpoint["classes"]:
         raise ValueError("测试集类别顺序与模型不一致")
     out = Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
     loader = make_loader(rows, False, args.batch_size, args.workers, device)
     all_probabilities = []
+    # inference_mode 关闭梯度和版本追踪，比普通 no_grad 更适合纯推理。
     with torch.inference_mode():
         for images, _ in loader:
             all_probabilities.append(model(images.to(device)).softmax(1).cpu().numpy())
     probabilities = np.concatenate(all_probabilities)
     targets = np.array([r["label"] for r in rows])
     predictions = probabilities.argmax(1)
+    # argsort 从小到大排列；末尾 5 个索引就是分数最高的五类。
     top5 = np.argsort(probabilities, axis=1)[:, -5:]
     classes = checkpoint["classes"]
     names = [c["name"] for c in classes]
     report = classification_report(targets, predictions, labels=list(range(37)),
                                    target_names=names, output_dict=True, zero_division=0)
+    # 把 37 个细粒度品种映射为 cat/dog，可额外观察物种层面的准确率。
     species = np.array([c["species"] for c in classes])
     metrics = {"split": "official test", "samples": len(rows),
                "top1_accuracy": float(accuracy_score(targets, predictions)),
@@ -49,6 +59,7 @@ def evaluate(args):
                "checkpoint_sha256": hashlib.sha256(Path(args.checkpoint).read_bytes()).hexdigest()}
     write_json(out / "metrics.json", metrics)
     write_json(out / "classification_report.json", report)
+    # 混淆矩阵固定包含全部 37 类：行是真实标签，列是预测标签。
     matrix = confusion_matrix(targets, predictions, labels=list(range(37)))
     with (out / "confusion_matrix.csv").open("w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
@@ -70,6 +81,7 @@ def evaluate(args):
     fig.tight_layout()
     fig.savefig(out / "confusion_matrix.png", dpi=160)
     plt.close(fig)
+    # 选出“对错误答案最有把握”的 12 张图片，用于分析模型过度自信问题。
     errors = np.flatnonzero(targets != predictions)
     errors = sorted(errors, key=lambda i: float(probabilities[i, predictions[i]]), reverse=True)[:12]
     if errors:
@@ -85,6 +97,7 @@ def evaluate(args):
         fig.tight_layout()
         fig.savefig(out / "errors.png", dpi=140)
         plt.close(fig)
+    # 如果同目录有训练记录，则一并绘制训练/验证曲线。
     history_path = Path(args.checkpoint).parent / "history.csv"
     if history_path.exists():
         with history_path.open(encoding="utf-8") as file:

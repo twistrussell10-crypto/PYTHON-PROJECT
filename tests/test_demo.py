@@ -10,6 +10,7 @@ from scripts.launch_app import available_port
 
 
 def test_port_selection_skips_busy_port():
+    """启动器遇到已占用端口时，应继续选择下一个可用端口。"""
     with socket.socket() as occupied:
         occupied.bind(("127.0.0.1", 0))
         occupied.listen()
@@ -25,9 +26,11 @@ def test_port_selection_skips_busy_port():
     reason="演示集成测试需要本地训练模型 outputs/baseline/best.pt；基础测试无需该文件",
 )
 def test_demo_reuses_prediction_and_supports_search():
+    """网页切换到类别搜索时应复用预测缓存，不重复执行神经网络。"""
     original = Predictor.predict
     calls = []
     def record(self, image, top_k=5):
+        """测试替身：记录调用次数后继续执行真实预测。"""
         calls.append(1)
         return original(self, image, top_k)
     with patch.object(Predictor, "predict", record):

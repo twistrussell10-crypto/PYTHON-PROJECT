@@ -1,8 +1,10 @@
+"""项目命令行入口：python -m pet_classifier <子命令>。"""
 import argparse
 import json
 
 
 def main():
+    """解析命令行参数，并把任务分派给数据、训练、评估或预测模块。"""
     parser = argparse.ArgumentParser(description="Oxford-IIIT 宠物品种分类器")
     commands = parser.add_subparsers(dest="command", required=True)
     prepare = commands.add_parser("prepare", help="下载并校验官方数据")
@@ -23,12 +25,14 @@ def main():
     predict.add_argument("image")
     predict.add_argument("--checkpoint", default="outputs/baseline/best.pt")
     predict.add_argument("--top-k", type=int, default=5)
+    # 三个需要模型计算的命令使用相同的设备选择方式。
     for sub in (train, evaluate, predict):
         sub.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     for sub in (train, evaluate):
         sub.add_argument("--batch-size", type=int, default=32)
         sub.add_argument("--workers", type=int, default=2)
     args = parser.parse_args()
+    # 延迟导入使 --help 启动更快，也避免未执行命令加载不必要的依赖。
     if args.command == "prepare":
         from .data import prepare
         prepare(args.data)

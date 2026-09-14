@@ -18,19 +18,23 @@ CACHE = ROOT / "data" / "mirror-download"
 
 
 def main():
+    """并发分块下载镜像、校验 MD5、安全解压，再调用安装脚本。"""
     CACHE.mkdir(parents=True, exist_ok=True)
     metadata = requests.get("https://zenodo.org/api/records/8067751", timeout=60)
     metadata.raise_for_status()
     file = metadata.json()["files"][0]
     url, total = file["links"]["self"], file["size"]
     checksum = file["checksum"].removeprefix("md5:")
+    # 每块 32 MiB，失败时只重试当前块，不必重新下载整个大文件。
     size = 32 * 1024 * 1024
 
     def download_part(index):
+        """下载第 index 个字节范围，已有完整缓存块时直接复用。"""
         start, end = index * size, min(total, (index + 1) * size) - 1
         part = CACHE / f"part-{index:03}.bin"
         if part.exists() and part.stat().st_size == end - start + 1:
             return part
+        # 最多尝试四次，等待时间按 1、2、4 秒指数增长。
         for attempt in range(4):
             try:
                 with requests.get(url, headers={"Range": f"bytes={start}-{end}"},
@@ -51,9 +55,11 @@ def main():
                 time.sleep(2 ** attempt)
 
     archive = CACHE / "pets.zip"
+    # 多线程适合网络 I/O，可同时等待多个分块响应。
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         parts = list(pool.map(download_part, range(math.ceil(total / size))))
     digest = hashlib.md5()
+    # 严格按照块编号合并，同时计算整个 ZIP 的 MD5。
     with archive.open("wb") as output:
         for part in parts:
             with part.open("rb") as source:
@@ -67,6 +73,7 @@ def main():
     destination = (CACHE / "extracted").resolve()
     destination.mkdir(exist_ok=True)
     with zipfile.ZipFile(archive) as zipped:
+        # 解压前逐项解析目标路径，阻止 ../ 一类路径穿越写到缓存目录外。
         for member in zipped.infolist():
             target = (destination / member.filename).resolve()
             if os.path.commonpath([str(destination), str(target)]) != str(destination):

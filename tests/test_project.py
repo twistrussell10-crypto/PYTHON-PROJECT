@@ -11,6 +11,7 @@ from pet_classifier.predict import Predictor
 
 
 def test_split_is_stratified_reproducible_and_disjoint():
+    """分层划分应可复现、互斥、完整，并为每类保留验证样本。"""
     rows = [{"name": f"{label}_{i}", "label": label} for label in range(37) for i in range(10)]
     train, val = stratified_split(rows, seed=42)
     assert (train, val) == stratified_split(rows, seed=42)
@@ -24,8 +25,10 @@ def test_split_is_stratified_reproducible_and_disjoint():
 
 
 def test_checkpoint_prediction_uses_saved_label_order_and_rgb(tmp_path):
+    """预测必须沿用 checkpoint 类别顺序，并兼容 RGB、RGBA 和灰度图。"""
     torch.set_num_threads(2)
     model = build_model(pretrained=False).eval()
+    # 人为让第 7 类具有最大偏置，从而得到确定且易验证的预测结果。
     with torch.no_grad():
         model.classifier[-1].weight.zero_()
         model.classifier[-1].bias.zero_()
@@ -45,6 +48,7 @@ def test_checkpoint_prediction_uses_saved_label_order_and_rgb(tmp_path):
 
 
 def test_frozen_backbone_does_not_update_batchnorm_or_weights(tmp_path):
+    """冻结阶段不能改变主干权重或 BatchNorm 状态，但分类头必须更新。"""
     torch.set_num_threads(2)
     model = build_model(pretrained=False)
     for parameter in model.features.parameters():
@@ -61,6 +65,7 @@ def test_frozen_backbone_does_not_update_batchnorm_or_weights(tmp_path):
 
 
 def test_dataset_handles_grayscale(tmp_path):
+    """灰度图片应被统一转换为模型需要的三通道张量。"""
     path = tmp_path / "gray.png"
     Image.new("L", (320, 260), color=150).save(path)
     image, label = PetDataset([{"path": str(path), "label": 3}])[0]

@@ -15,9 +15,11 @@ ANNOTATION_MD5 = "95a8c909bbe2e81eed6a22bccdf3f68f"
 
 
 def install_annotations():
+    """下载、校验并解压 Oxford 官方标注；已有正确文件时直接复用。"""
     BASE.mkdir(parents=True, exist_ok=True)
     archive = BASE / "annotations.tar.gz"
     if not archive.exists() or hashlib.md5(archive.read_bytes()).hexdigest() != ANNOTATION_MD5:
+        # 先写 .partial，校验通过后再替换正式文件，避免中断留下坏压缩包。
         temporary = archive.with_suffix(".partial")
         with requests.get(ANNOTATION_URL, stream=True, timeout=(30, 90)) as response:
             response.raise_for_status()
@@ -32,10 +34,12 @@ def install_annotations():
 
 
 def main(annotations_only=False):
+    """把镜像图片安装到官方目录，并验证官方划分与图片内容指纹。"""
     install_annotations()
     if annotations_only:
         return
     extracted = ROOT / "data" / "mirror-download" / "extracted"
+    # 镜像内部目录结构可以不同，只依靠全局唯一的图片文件名恢复。
     sources = sorted(extracted.rglob("*.jpg"))
     if not sources or len({p.name for p in sources}) != len(sources):
         raise ValueError("镜像未解压，或图片文件名重复")
@@ -53,6 +57,7 @@ def main(annotations_only=False):
             raise ValueError(f"缺少官方 {split} 图片：{missing[:5]}")
     if sets["trainval"] & sets["test"]:
         raise ValueError("官方训练和测试划分存在重复")
+    # 按文件名排序后累计内容哈希，使不同机器可对照同一批图片。
     digest = hashlib.sha256()
     for name in sorted(sets["trainval"] | sets["test"]):
         digest.update(name.encode("utf-8"))

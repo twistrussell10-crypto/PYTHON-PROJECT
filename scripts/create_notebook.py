@@ -2,14 +2,17 @@
 import json
 from pathlib import Path
 
+# Jupyter Notebook 本质是 JSON；cells 按最终展示顺序保存所有单元格。
 cells = []
 
 
 def markdown(text):
+    """向 notebook 追加一个 Markdown 讲解单元格。"""
     cells.append({"cell_type": "markdown", "metadata": {}, "source": text.splitlines(True)})
 
 
 def code(text):
+    """向 notebook 追加一个尚未执行的 Python 代码单元格。"""
     cells.append({"cell_type": "code", "metadata": {}, "execution_count": None,
                   "outputs": [], "source": text.splitlines(True)})
 
@@ -84,6 +87,7 @@ python -m pet_classifier train --output outputs/experiment_8epochs --epochs 8
 
 先比较验证集，不要用测试集反复选参数。训练命令会拒绝覆盖已有模型，便于保留每次实验。
 """)
+# nbformat 4 是当前通用格式；execution_count=None 表示交付前未伪造运行结果。
 notebook = {"cells": cells, "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
             "language_info": {"name": "python", "version": "3.9.12"}}, "nbformat": 4, "nbformat_minor": 4}
 destination = Path(__file__).resolve().parents[1] / "notebooks" / "01_understand_the_project.ipynb"

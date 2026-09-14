@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def check_environment():
+    """检查网页所需依赖和训练模型是否存在；失败时给出可操作的错误。"""
     missing = [name for name in ("streamlit", "torch", "torchvision", "PIL")
                if importlib.util.find_spec(name) is None]
     if missing:
@@ -23,7 +24,9 @@ def check_environment():
 
 
 def available_port(start=8501, attempts=20):
+    """从 start 开始查找可绑定的本机端口，返回第一个空闲端口。"""
     for port in range(start, min(start + attempts, 65536)):
+        # with 确保探测套接字立即释放，Streamlit 随后可以使用该端口。
         with socket.socket() as probe:
             try:
                 probe.bind(("127.0.0.1", port))
@@ -34,6 +37,7 @@ def available_port(start=8501, attempts=20):
 
 
 def main():
+    """启动 Streamlit，等待健康检查通过后打开浏览器，并负责结束子进程。"""
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--no-browser", action="store_true")
@@ -44,13 +48,16 @@ def main():
         return 0
     port = available_port()
     url = f"http://127.0.0.1:{port}"
+    # sys.executable 保证 Streamlit 与当前项目 Python 来自同一虚拟环境。
     command = [sys.executable, "-m", "streamlit", "run", str(ROOT / "app.py"),
                "--server.address", "127.0.0.1", "--server.port", str(port),
                "--server.headless", "true", "--browser.gatherUsageStats", "false"]
     process = subprocess.Popen(command, cwd=str(ROOT))
+    # 本机健康检查不应经过系统代理，否则可能被代理配置干扰。
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     try:
         ready = False
+        # 每 0.25 秒探测一次，最多等待约 30 秒。
         for _ in range(120):
             if process.poll() is not None:
                 raise RuntimeError("Streamlit exited before startup. See the error above.")
@@ -71,6 +78,7 @@ def main():
     except KeyboardInterrupt:
         return 0
     finally:
+        # 无论正常关闭、异常还是 Ctrl+C，都回收 Streamlit 子进程。
         if process.poll() is None:
             process.terminate()
             try:
